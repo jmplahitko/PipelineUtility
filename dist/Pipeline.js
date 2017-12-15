@@ -15,18 +15,15 @@ class Pipeline {
     }
     _done(value, err) {
         if (this._iterator) {
-            this._iterator = null;
             if (err) {
                 (this._reject || noop)(value);
-                return;
             }
-            (this._resolve || noop)(value);
-        }
-        else {
+            else {
+                (this._resolve || noop)(value);
+            }
             this._iterator = null;
             this._resolve = null;
             this._reject = null;
-            throw new Error('Pipeline:_done() cannot be called out of context of Pipeline.run()');
         }
     }
     _next(value) {
@@ -38,12 +35,6 @@ class Pipeline {
             else {
                 this._done(value);
             }
-        }
-        else {
-            this._iterator = null;
-            this._resolve = null;
-            this._reject = null;
-            throw new Error('Pipeline:_next() cannot be called out of context of Pipeline.run()');
         }
     }
     run(value) {
