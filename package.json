@@ -1,8 +1,12 @@
 {
   "name": "pipeline-utility",
-  "version": "0.0.1",
-  "description": "Simple Utility for Piping",
-  "private": true,
+  "version": "0.1.0",
+	"description": "Simple Utility for Piping",
+	"repository": {
+		"type" : "git",
+		"url" : "https://github.com/jmplahitko/PipelineUtility.git"
+  },
+  "private": false,
   "license": "MIT",
   "types": "dist/index.d.ts",
   "main": "dist/index.js",
