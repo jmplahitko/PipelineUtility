@@ -1,1 +1,1 @@
-export { Pipeline } from './Pipeline';
+export { createPipe } from './createPipe';

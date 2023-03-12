@@ -1,21 +1,35 @@
 {
-  "name": "pipeline-utility",
-  "version": "0.2.0",
-  "description": "Simple Utility for Piping",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/jmplahitko/PipelineUtility.git"
-  },
-  "private": false,
-  "license": "MIT",
-  "types": "dist/index.d.ts",
-  "main": "dist/index.js",
-  "devDependencies": {
-    "jshint": "^2.10.2",
-    "typescript": "2.6.2"
-  },
-  "scripts": {
-    "build": "tsc -p .",
-    "watch": "tsc -p . --watch"
-  }
+	"name": "pipeline-utility",
+	"version": "1.0.0",
+	"description": "Simple Utility for Piping",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/jmplahitko/PipelineUtility.git"
+	},
+	"license": "MIT",
+	"types": "dist/index.d.ts",
+	"main": "dist/index.js",
+	"dependencies": {
+		"ramda": "^0.28.0"
+	},
+	"devDependencies": {
+		"@types/jasmine": "^4.3.1",
+		"@types/node": "^18.15.0",
+		"@types/ramda": "^0.28.23",
+		"jasmine": "^3.9.0",
+		"jasmine-ts": "^0.4.0",
+		"jasmine-ts-console-reporter": "^3.1.1",
+		"jshint": "^2.13.6",
+		"ts-node": "^10.9.1",
+		"typescript": "^4.9.5"
+	},
+	"scripts": {
+		"build": "rimraf dist/* && npm run build:types && npm run build:js",
+		"build:js": "babel src --out-dir dist --extensions \".ts,.tsx\" --source-maps inline",
+		"build:types": "tsc --emitDeclarationOnly",
+		"review": "npm run type-check && npm run test",
+		"test": "jasmine-ts \"spec/**/*.spec.ts\"",
+		"type-check": "tsc --noEmit",
+		"watch": "tsc -p . --watch"
+	}
 }
