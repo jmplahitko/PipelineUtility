@@ -4,7 +4,7 @@
 	"description": "Simple Utility for Piping",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/jmplahitko/PipelineUtility.git"
+		"url": "git+https://github.com/jmplahitko/PipelineUtility.git"
 	},
 	"license": "MIT",
 	"type": "module",
