@@ -8,15 +8,29 @@ and asynchronous operations. It's similar to a pipe or chain pattern, where each
 * Resolve early
 * Reject with an error
 
+## Installation
+
+```bash
+npm install pipeline-utility
+```
+
 ## Usage
 
 This utility's design is simple and allows for a lot of flexibility. Here are some examples of how to use it.
 
+This package supports both CommonJS and ES Modules.
+
+```ts
+import { createPipe } from 'pipeline-utility';
+```
+
+```ts
+const { createPipe } = require('pipeline-utility');
+```
+
 ### Example 1: Simple synchronous operations
 
 ```ts
-import { createPipe } from './createPipe';
-
 const addTenPipe = createPipe<number>([
 	(value, next) => {
 		next(value + 10);

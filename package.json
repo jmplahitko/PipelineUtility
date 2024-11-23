@@ -7,8 +7,19 @@
 		"url": "https://github.com/jmplahitko/PipelineUtility.git"
 	},
 	"license": "MIT",
-	"types": "dist/index.d.ts",
-	"main": "dist/index.js",
+	"type": "module",
+	"exports": {
+		"./dist/cjs/index.js": "./dist/cjs/index.js",
+		"./dist/esm/index.js": "./dist/esm/index.js",
+		"./dist/types/index.d.ts": "./dist/types/index.d.ts"
+	},
+	"main": "./dist/cjs/index.js",
+	"module": "./dist/esm/index.js",
+	"types": "./dist/types/index.d.ts",
+	"files": [
+		"dist",
+		"!dist/**/*.map"
+	],
 	"dependencies": {
 		"ramda": "^0.30.1"
 	},
@@ -17,19 +28,20 @@
 		"@types/node": "^18.19.65",
 		"@types/ramda": "^0.28.25",
 		"jasmine": "^3.99.0",
-		"jasmine-ts": "^0.4.0",
-		"jasmine-ts-console-reporter": "^3.1.1",
 		"jshint": "^2.13.6",
 		"ramda": "^0.30.1",
-		"ts-node": "^10.9.2",
-		"typescript": "^4.9.5"
+		"rimraf": "^6.0.1",
+		"tsx": "^4.7.1",
+		"typescript": "^5.7.2"
 	},
 	"scripts": {
-		"build": "rimraf dist/* && npm run build:types && npm run build:js",
-		"build:js": "babel src --out-dir dist --extensions \".ts,.tsx\" --source-maps inline",
-		"build:types": "tsc --emitDeclarationOnly",
+		"build": "rimraf dist/* && npm run build:cjs && npm run build:esm && npm run build:types",
+		"build:cjs": "tsc -p tsconfig.cjs.json",
+		"build:esm": "tsc -p tsconfig.esm.json",
+		"build:types": "tsc -p tsconfig.types.json",
 		"review": "npm run type-check && npm run test",
-		"test": "jasmine-ts \"spec/**/*.spec.ts\"",
+		"test": "jasmine --config=jasmine.json",
+		"test:watch": "tsx watch --test spec/**/*.spec.ts",
 		"type-check": "tsc --noEmit",
 		"watch": "tsc -p . --watch"
 	}
