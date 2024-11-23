@@ -1,149 +1,143 @@
-# Pipeline
-A simple utility that pipes a value through middlewares.
+# pipeline-utility
 
-## Why?
-We all know what Pipelines are. Pipes and middlewares have already been used a ton, and there are already a number of fantastic libriaries/projects out there.
+`createPipe` is a utility function that creates a composable pipeline of operations that can handle both synchronous
+and asynchronous operations. It's similar to a pipe or chain pattern, where each operator in the pipeline can:
 
-Though, sometimes you need something smaller that doesn't have any preconceived uses in mind. This utility was specifically designed for easy use and is completely unopinionated about how it gets used.
+* Process a value
+* Pass it to the next operator
+* Resolve early
+* Reject with an error
 
 ## Usage
 
-Pipeline is built with TypeScript, but this is not a requirement to use it. The following usage documentation is written with TypeScript in mind for brevity.
+This utility's design is simple and allows for a lot of flexibility. Here are some examples of how to use it.
 
-### Pipeline (constructor)
+### Example 1: Simple synchronous operations
 
-Constructor that creates a pipeline. Optionally, you can front-load middwares by suppling an iterable collection of middlewares as a constructor argument. Middlwares are executed in order. Any non-array iterable will be converted to an array automatically. If no iterable is supplied via constructor, any value passed will simply be returned, unmodified.
+```ts
+import { createPipe } from './createPipe';
 
-Pipeline is generic and requires one type parameter `T`, where `T` is the type of value that will be passed to each middlware.
-
-```javascript
-let pipe = new Pipeline<string>();
-
-// This pipeline expects middlewares that accept a string as its first parameter (see middleware below).
-
-// or...
-
-let identityPipe = new Pipeline<string>([
-	(str, next) => next(str);
-]);
-```
-
-### Pipeline\#use
-
-Optionally, you can add a middlware after the construction of a Pipeline. Middlewares added via `use()` are executed in order. If middlewares are supplied via constructor arguement, any middlwares added after the fact via `use()` will simply be added to the iterable.
-
-```javascript
-let pipe = new Pipeline<string>();
-
-pipe.use((str, next) => next(str));
-
-// or, construct a front-loaded Pipeline and add more middlewares later
-
-let frontLoadedPipe = new Pipeline<string>([
-	(str, next) => next(str);
+const addTenPipe = createPipe<number>([
+	(value, next) => {
+		next(value + 10);
+	}
 ]);
 
-frontLoadedPipe.use((str, next) => {
-	next(str + '--add-some-string');
-});
+const result = await addTenPipe(5);
 
+expect(result).toEqual(15);
 ```
 
-### Pipeline\#run
+### Example 2: Multiple operations
 
-Takes a value as an argument, and returns a promise containing the resulting value. Each registered middleware will be run in order, as long as the pipeline is not short-circuited (see middleware below). The value passed to `run()` must satisfy the type specified when constructing the pipeline.
-
-```javascript
-let pipe = new Pipeline<string>([
-	(str, next) => next(str + '--1');
-	(str, next) => next(str + '--2');
+```ts
+const mathPipe = createPipe<number>([
+	(value, next) => {
+		next(value + 10);
+	},
+	(value, next) => {
+		next(value * 2);
+	},
+	(value, next) => {
+		next(value - 5);
+	}
 ]);
 
-pipe.run('bacon').then(val => {
-	// val = 'bacon--1--2'
-});
+const result = await mathPipe(5);
+
+expect(result).toEqual(25); // Output: 25 ((5 + 10) * 2 - 5)
 ```
 
-Pipelines can be run many times, as long as subsequent `run()` calls occur within the context of the pipeline's returned promise.
+### Example 3: Early resolution
 
-**Concurrent `run()` calls are not supported, and will result in bad, unpredicable things. If this behavior is desired, then go for it.**
-
-### Middleware
-
-Middlewares are just functions that are provided four arguments.
-- `value: T` - A value passed from `run()`, or from a previously run middleware
-- `next: value<T> => void` - Triggers the next middleware in the pipeline. If invoked in the last middware of the pipeline, the pipeline will automatically resolve the returned promise. This helps ensure each middlware is contained and knows nothing about how it's being used within the pipeline.
-- `resolve: (value?: T | PromiseLike<T>) => void` - Resolves the pipeline early. Invoking `resolve` results in skipping any subsequent middlewares, thus "short-circuiting" the pipeline, and resolving the pipeline's returned promise.
-- `reject: (reason?: any) => void` - Rejects the pipeline early. Invoking `reject` results in skipping any subsequent middlewares, thus "short-circuiting" the pipeline, and rejecting the pipeline's returned promise. The expectation is to pass a rejection reason, but anything can be passed to `reject` (like errors);
-
-One of the virtues of Pipeline is that each middleware can be control when the pipeline's execution can continue. This allows for some slick ways to control flow of execution either synchronously or asynchronously. Take this naive example:
-
-```javascript
-let middleware = (value, next, resolve, reject) => {
-	http.get(`some/resource?id=${value}`)
-		.then(res => {
-			// do something with res
+```ts
+const earlyResolvePipe = createPipe<number>([
+	(value, next, resolve) => {
+		if (value < 0) {
+			resolve(0); // Early exit if negative
+		} else {
 			next(value);
-		}, err => {
-			reject(err);
-		});
-};
+		}
+	},
+	(value, next) => {
+		next(value * 2); // This won't run for negative numbers
+	}
+]);
+
+const results = await Promise.all([
+	await earlyResolvePipe(-5),
+	await earlyResolvePipe(5)
+]);
+
+expect(results).toEqual([0, 10]);
 ```
 
-If the http call is successful, we pass the value to the next middleware (if any). Otherwise, we short-circuit the pipeline by passing the http error to `reject`.
+### Example 4: Error handling
 
-### Examples
+```ts
+const errorMessage = 'Negative numbers not allowed';
+const validatePipe = createPipe<number>([
+	(value, next, resolve, reject) => {
+		if (value < 0) {
+			reject(new Error(errorMessage));
+		} else {
+			next(value);
+		}
+	}
+]);
 
-#### Using Generators
-Sometimes, we want to create our middlewares dynamically. Since `Pipeline` takes an iterator, we can pass an invoked generator function.
+await validatePipe(-5)
+	.catch(error => {
+		expect(error).toBeInstanceOf(Error);
+		expect(error.message).toEqual(errorMessage);
+	});
 
-```javascript
-type TRequest = { url: string, headers: Headers }
+const result = await validatePipe(5);
 
-const pw = 'SOME_APP_KEY';
-const username = 'SOME_USER_NAME';
-const bytes = utf8.encode(`${username}:${pw}`);
-const encodedCreds = base64.encode(`${username}:${pw}`);
+expect(result).toEqual(5);
+```
 
-const page = (_pageNumber, _pageSize) => {
-	return ({ url, headers }, next, resolve, reject) => {
-		let _url = `${url}?offset=${_pageNumber*_pageSize}&limit=${_pageSize}`;
-		return fetch(_url, {
-			headers
-		}).then(res => {
-			res.json().then(json => {
-				fs.writeFile(`${__dirname}/tmp/result${_pageNumber}.json`, JSON.stringify(json.info), (err) => {
-					if(err) {
-						reject(err);
-					}
+### Example 5: Async operations
 
-					next({ url, headers });
-					console.log('The file was saved!');
-				});
-			}, err => {
-				reject(err);
-			});
+```ts
+const asyncPipe = createPipe<number>([
+	async (value, next) => {
+		const result = await someAsyncOperation(value);
+		next(result);
+	},
+	(value, next) => {
+		next(value * 2);
+	}
+]);
+
+const result = await asyncPipe(5);
+
+expect(result).toEqual(12);
+```
+
+### Example 6: Accumulating paginated data with generators
+
+```ts
+const generateMiddleware = function* () {
+	let page = 1;
+	let hasMore = true;
+
+	while (hasMore) {
+		yield async (data: number[], next: NextOperator<number[]>) => {
+			const response = await fetchPaginatedData(page, 10);
+			hasMore = response.hasMore;
+			page++;
+			next([...data, ...response.data]); // Accumulate data through the pipe
 		};
-	};
-};
-
-const pager = function* (_page) {
-	let p = _page;
-	while (p < 11) {
-		yield page(p, 1);
-		p ++;
 	}
 };
 
-let asyncPipe = new Pipeline<TRequest>(pager(0));
-let headers = new Headers();
-headers.set('Authorization', `Basic ${encodedCreds}`);
+const pipe = createPipe<number[]>(generateMiddleware());
 
-asyncPipe.run({
-	url: `http://some/api/resource`,
-	headers
-}).then(res => {
-	console.log('success!');
-}, err => {
-	console.log(err);
-});
+const results = await pipe([]); // Start with empty array
+
+expect(results.length).toBe(30); // Total items across all pages
+expect(results.slice(0, 10)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]); // First page
+expect(results.slice(10, 20)).toEqual([10, 11, 12, 13, 14, 15, 16, 17, 18, 19]); // Second page
+expect(results.slice(20, 30)).toEqual([20, 21, 22, 23, 24, 25, 26, 27, 28, 29]); // Third page
+```
