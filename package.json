@@ -9,9 +9,11 @@
 	"license": "MIT",
 	"type": "module",
 	"exports": {
-		"./dist/cjs/index.js": "./dist/cjs/index.js",
-		"./dist/esm/index.js": "./dist/esm/index.js",
-		"./dist/types/index.d.ts": "./dist/types/index.d.ts"
+		".": {
+			"require": "./dist/cjs/index.js",
+			"import": "./dist/esm/index.js",
+			"types": "./dist/types/index.d.ts"
+		}
 	},
 	"main": "./dist/cjs/index.js",
 	"module": "./dist/esm/index.js",
